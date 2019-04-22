@@ -6,9 +6,9 @@
 %
 %   Modified by Renjie Zhang, Bingxian Lu.
 %   Email: bingxian.lu@gmail.com
-
 function read_bf_socket()
-
+clc;
+clear all;
 while 1
 %% Build a TCP Server and wait for connection
     port = 8090;
@@ -23,13 +23,13 @@ while 1
     clf;
     axis([1,30,-10,30]);
     t1=0;
-    m1=zeros(30,1);
+    m1=zeros(31,1);
 
 %%  Starting in R2014b, the EraseMode property has been removed from all graphics objects. 
 %%  https://mathworks.com/help/matlab/graphics_transition/how-do-i-replace-the-erasemode-property.html
     [VER DATESTR] = version();
     if datenum(DATESTR) > datenum('February 11, 2014')
-        p = plot(t1,m1,'MarkerSize',15);
+        p = plot(t1,m1,'MarkerSize',10);
     else
         p = plot(t1,m1,'EraseMode','Xor','MarkerSize',5);
     end
@@ -42,7 +42,16 @@ while 1
     index = -1;                     % The index of the plots which need shadowing
     broken_perm = 0;                % Flag marking whether we've encountered a broken CSI yet
     triangle = [1 3 6];             % What perm should sum to for 1,2,3 antennas
-
+    num = 0;                        % user_defined number for average count
+    num1 = 0;
+    err_count = 0;
+    sum_count = 50;
+    csi = zeros(3,3,30);
+    csi_empty = zeros(1,30);
+    csi_rx1_sum = zeros(1,30);        % user_defined csi sum
+    csi_sum = zeros(1,30);
+    status = 0;
+    
 %% Process all entries in socket
     % Need 3 bytes -- 2 byte size field and 1 byte code
     while 1
@@ -82,7 +91,7 @@ while 1
                 if sum(perm) ~= triangle(Nrx) % matrix does not contain default values
                     if broken_perm == 0
                         broken_perm = 1;
-                        %fprintf('WARN ONCE: Found CSI (%s) with Nrx=%d and invalid perm=[%s]\n', filename, Nrx, int2str(perm));
+                        % fprintf('WARN ONCE: Found CSI (%s) with Nrx=%d and invalid perm=[%s]\n', filename, Nrx, int2str(perm));
                     end
                 else
                     csi_entry.csi(:,perm(1:Nrx),:) = csi_entry.csi(:,1:Nrx,:);
@@ -90,22 +99,54 @@ while 1
             end
         end
     
-        index = mod(index+1, 10);
-        
-        csi = get_scaled_csi(csi_entry);%CSI data
-	%You can use the CSI data here.
+        index = mod(index+1,5);
+        csi = get_scaled_csi(csi_entry);
 
-	%This plot will show graphics about recent 10 csi packets
-        set(p(index*3 + 1),'XData', [1:30], 'YData', db(abs(squeeze(csi(1,1,:)).')), 'color', 'b', 'linestyle', '-');
-        if Nrx > 1
-            set(p(index*3 + 2),'XData', [1:30], 'YData', db(abs(squeeze(csi(1,2,:)).')), 'color', 'g', 'linestyle', '-');
+    %CSI data
+	%You can use the CSI data here.
+        if (status == 0)
+            if num1 < 500
+                csi_sum = abs(squeeze(csi(1,1,:)).') + csi_sum;
+                disp(abs(squeeze(csi(1,1,:)).'))
+                num1 = num1 + 1;
+                disp(num1);
+            else
+                csi_static = csi_sum/500;
+                csi_sum = csi_empty;
+                status = 1;
+                num1 =0;
+            end
+	%%This plot will show graphics about recent 5 csi packets
+        else 
+            set(p(31),'XData', [1:30], 'YData', db(csi_static), 'color', 'b', 'linestyle', '-');
+            if num < sum_count
+               num = num+1;
+               csi_rx1_sum = abs(squeeze(csi(1,1,:)).') + csi_rx1_sum ;
+            else    
+                csi_new = csi_rx1_sum/sum_count;
+                disp(csi_new)
+                for n=1:30
+                    compare_var = [csi_static(n),csi_new(n)];
+                    err(n) = std(compare_var);
+                    if err(n) > 1.5
+                        err_count = err_count + 1;
+                    end
+                end
+                %disp(err);
+                disp(err_count);
+                if err_count > 20
+                    set(p(index*3 + 1),'XData', [1:30], 'YData', db(csi_new), 'color', 'r', 'linestyle', '-');
+                else 
+                    set(p(index*3 + 1),'XData', [1:30], 'YData', db(csi_new), 'color', 'g', 'linestyle', '-');
+                end
+                csi_rx1_sum = csi_empty;
+                err_count = 0;
+                num = 0;
+                axis([1,30,-10,40]);
+                drawnow;
+            end
         end
-        if Nrx > 2
-            set(p(index*3 + 3),'XData', [1:30], 'YData', db(abs(squeeze(csi(1,3,:)).')), 'color', 'r', 'linestyle', '-');
-        end
-        axis([1,30,-10,40]);
-        drawnow; 
- 
+
         csi_entry = [];
     end
 %% Close file
