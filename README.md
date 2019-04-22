@@ -1,4 +1,4 @@
-# Realtime-processing-for-csitool
+# 基于CSI的WiFi室内被动式目标检测技术
 
 ##################大创项目##################
 
