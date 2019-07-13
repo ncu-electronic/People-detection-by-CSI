@@ -105,13 +105,13 @@ while 1
     %CSI data
 	%You can use the CSI data here.
         if (status == 0)
-            if num1 < 500
+            if num1 < 5000
                 csi_sum = abs(squeeze(csi(1,1,:)).') + csi_sum;
                 disp(abs(squeeze(csi(1,1,:)).'))
                 num1 = num1 + 1;
                 disp(num1);
             else
-                csi_static = csi_sum/500;
+                csi_static = csi_sum/5000;
                 csi_sum = csi_empty;
                 status = 1;
                 num1 =0;

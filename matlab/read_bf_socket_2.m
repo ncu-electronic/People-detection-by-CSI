@@ -45,7 +45,7 @@ while 1
     num = 0;                        % user_defined number for average count
     err_subsci_num = 0;
     sum_count = 40;
-    init_count = 5000;
+    init_count = 2000;
     csi = zeros(3,3,30);
     csi_empty = zeros(1,30);
     csi_rx1_sum = zeros(1,30);        % user_defined csi sum
@@ -127,13 +127,13 @@ while 1
                 for n=1:30
                     compare_var = [csi_static(n),csi_new(n)];
                     err(n) = std(compare_var);
-                    if err(n) > 2.5
+                    if err(n) > 2
                         err_subsci_num = err_subsci_num + 1;
                     end
                 end
                 disp(err);
                 disp(err_subsci_num);
-                if err_subsci_num > 8
+                if err_subsci_num > 6
                     set(p(index*3 + 1),'XData', [1:30], 'YData', db(csi_new), 'color', 'r', 'linestyle', '-');
                 else 
                     set(p(index*3 + 1),'XData', [1:30], 'YData', db(csi_new), 'color', 'g', 'linestyle', '-');
